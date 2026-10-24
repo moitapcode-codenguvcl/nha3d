@@ -1,5 +1,5 @@
 """
-house.py — Ngôi nhà 2 tầng dựng từ các hình hộp (tường, sàn, cầu thang, mái).
+house.py — Ngôi nhà 2 tầng dựng từ các hình hộp (tường, sàn, cầu thang, mái, lan can, cửa sổ).
 Đơn vị: mét. Nhà rộng 14m (trục X) x sâu 10m (trục Z), tâm ở gốc tọa độ.
 Tầng trệt: y = 0 .. 2.8, sàn tầng 2 dày 0.2 (y 2.8..3.0), tầng 2: y = 3.0 .. 5.8, mái y 5.8..6.0.
 
@@ -7,7 +7,10 @@ Cách hoạt động: build_house() chạy MỘT LẦN, tạo danh sách PARTS g
 draw_house() chỉ vẽ lại danh sách đó mỗi khung hình; collision dùng chính danh sách đó.
 """
 
-from OpenGL.GL import glColor3f
+from OpenGL.GL import (
+    glColor3f, glColor4f, glEnable, glDisable,
+    GL_BLEND, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA
+)
 from shapes import draw_box_at
 import collision
 
@@ -135,6 +138,37 @@ def build_stairs():
         _box_range(x0, x1, GROUND_TOP, GROUND_TOP + h, STAIR_Z0, STAIR_Z1)
 
 
+def build_railing():
+    """
+    Lan can an toàn bảo vệ quanh lỗ cầu thang ở tầng 2.
+    LỐI RA CẦU THANG (x từ -6.9 đến -5.3) để trống hoàn toàn để người chơi bước lên tầng 2.
+    Lan can chỉ rào:
+    - Cạnh trước (dọc z = STAIR_Z1 = -3.7) từ x = -5.3 đến x = STAIR_X1 (-2.0).
+    - Cạnh bên (dọc x = STAIR_X1 = -2.0) từ z = STAIR_Z0 (-4.9) đến z = STAIR_Z1 (-3.7).
+    """
+    _set_color(0.42, 0.26, 0.14)
+    r_start_x = -5.3
+    r_end_x = STAIR_X1
+
+    # 1. Lan can cạnh trước (z = STAIR_Z1): từ x = -5.3 đến -2.0
+    # Tay vịn trên cùng
+    _box_range(r_start_x, r_end_x + 0.05, UPPER_TOP + 0.85, UPPER_TOP + 0.90, STAIR_Z1 - 0.03, STAIR_Z1 + 0.03)
+    # Các nan đứng cách đều
+    num_bars = 7
+    step_x = (r_end_x - r_start_x) / (num_bars - 1)
+    for k in range(num_bars):
+        bx = r_start_x + k * step_x
+        _box_range(bx - 0.02, bx + 0.02, UPPER_TOP, UPPER_TOP + 0.85, STAIR_Z1 - 0.02, STAIR_Z1 + 0.02)
+
+    # 2. Lan can cạnh bên (x = STAIR_X1): từ z = STAIR_Z0 đến z = STAIR_Z1
+    _box_range(STAIR_X1 - 0.03, STAIR_X1 + 0.03, UPPER_TOP + 0.85, UPPER_TOP + 0.90, STAIR_Z0, STAIR_Z1)
+    num_side_bars = 4
+    step_z = (STAIR_Z1 - STAIR_Z0) / (num_side_bars - 1)
+    for k in range(num_side_bars):
+        bz = STAIR_Z0 + k * step_z
+        _box_range(STAIR_X1 - 0.02, STAIR_X1 + 0.02, UPPER_TOP, UPPER_TOP + 0.85, bz - 0.02, bz + 0.02)
+
+
 # ───────────────────────── TƯỜNG ─────────────────────────
 
 def build_partitions(base):
@@ -179,6 +213,63 @@ def build_roof():
                -HALF_D - 0.3, HALF_D + 0.3)
 
 
+# ───────────────────────── CỬA SỔ & KÍNH ─────────────────────────
+
+WINDOWS = [
+    # (axis, fixed, center, base)
+    # Tầng trệt (base = 0.0)
+    ('x', HALF_D, -0.5, 0.0),
+    ('x', HALF_D,  4.0, 0.0),
+    ('x', -HALF_D, -0.5, 0.0),
+    ('x', -HALF_D,  4.0, 0.0),
+    ('z', -HALF_W,  1.5, 0.0),
+    ('z', HALF_W,  -2.5, 0.0),
+    ('z', HALF_W,   2.5, 0.0),
+    # Tầng 2 (base = UPPER_TOP)
+    ('x', HALF_D, -3.0, UPPER_TOP),
+    ('x', HALF_D,  4.0, UPPER_TOP),
+    ('x', -HALF_D, -0.5, UPPER_TOP),
+    ('x', -HALF_D,  4.0, UPPER_TOP),
+    ('z', -HALF_W,  0.0, UPPER_TOP),
+    ('z', HALF_W,  -2.5, UPPER_TOP),
+    ('z', HALF_W,   2.5, UPPER_TOP),
+]
+
+
+def draw_windows():
+    """Vẽ khung gỗ và kính bán trong suốt cho tất cả các cửa sổ."""
+    win_h = WIN_TOP - WIN_BOTTOM
+    # 1. Vẽ khung gỗ mỏng
+    glColor3f(0.35, 0.22, 0.12)
+    for axis, fixed, center, base in WINDOWS:
+        cy = base + (WIN_BOTTOM + WIN_TOP) / 2.0
+        if axis == 'x':
+            # Thanh ngang trên & dưới
+            draw_box_at(center, base + WIN_BOTTOM, fixed, WIN_W, 0.04, WALL_T + 0.02)
+            draw_box_at(center, base + WIN_TOP, fixed, WIN_W, 0.04, WALL_T + 0.02)
+            # Thanh dọc 2 bên & nan giữa
+            draw_box_at(center - WIN_W / 2.0, cy, fixed, 0.04, win_h, WALL_T + 0.02)
+            draw_box_at(center + WIN_W / 2.0, cy, fixed, 0.04, win_h, WALL_T + 0.02)
+            draw_box_at(center, cy, fixed, 0.03, win_h, WALL_T + 0.01)
+        else:
+            draw_box_at(fixed, base + WIN_BOTTOM, center, WALL_T + 0.02, 0.04, WIN_W)
+            draw_box_at(fixed, base + WIN_TOP, center, WALL_T + 0.02, 0.04, WIN_W)
+            draw_box_at(fixed, cy, center - WIN_W / 2.0, WALL_T + 0.02, win_h, 0.04)
+            draw_box_at(fixed, cy, center + WIN_W / 2.0, WALL_T + 0.02, win_h, 0.04)
+            draw_box_at(fixed, cy, center, WALL_T + 0.01, win_h, 0.03)
+
+    # 2. Vẽ mặt kính bán trong suốt
+    glEnable(GL_BLEND)
+    glColor4f(0.65, 0.85, 0.95, 0.35)
+    for axis, fixed, center, base in WINDOWS:
+        cy = base + (WIN_BOTTOM + WIN_TOP) / 2.0
+        if axis == 'x':
+            draw_box_at(center, cy, fixed, WIN_W - 0.04, win_h - 0.04, 0.02)
+        else:
+            draw_box_at(fixed, cy, center, 0.02, win_h - 0.04, WIN_W - 0.04)
+    glDisable(GL_BLEND)
+
+
 # ───────────────────────── GỌI TỪ main.py ─────────────────────────
 
 def build_house():
@@ -188,6 +279,7 @@ def build_house():
     build_ground_floors()
     build_stairs()
     build_upper_slab()
+    build_railing()
     build_ground_walls()
     build_upper_walls()
     build_roof()
@@ -199,6 +291,5 @@ def draw_house():
     """Vẽ lại danh sách hộp mỗi khung hình."""
     for (color, x0, x1, y0, y1, z0, z1) in PARTS:
         glColor3f(*color)
-        # Tịnh tiến tới tâm hộp rồi vẽ hộp có kích thước tương ứng
         draw_box_at((x0 + x1) / 2.0, (y0 + y1) / 2.0, (z0 + z1) / 2.0,
                     x1 - x0, y1 - y0, z1 - z0)
