@@ -97,12 +97,13 @@ Cấu trúc: tường, sàn, mái (hình hộp), cửa sổ (ô kính mỏng).
 
 ## 6. Tiến độ
 
-- [ ] Bước 0: Cửa sổ, vòng lặp, shapes cơ bản
-- [ ] Bước 1: Camera góc nhìn thứ nhất
-- [ ] Bước 2: Ngôi nhà — tường, sàn, mái, phòng
-- [ ] Bước 3: Va chạm AABB
-- [ ] Bước 4: Cửa mở/đóng có hoạt ảnh
-- [ ] Bước 5: Hệ thống đèn + đèn pin
-- [ ] Bước 6: Đồ đạc từng phòng
-- [ ] Bước 7 *(tùy chọn)*: Nhặt đồ vật + HUD
-- [ ] Bước 8: README + dọn dẹp code
+- [x] Bước 0: Cửa sổ, vòng lặp, shapes cơ bản
+- [x] Bước 1: Camera góc nhìn thứ nhất
+- [x] Bước 2: Ngôi nhà — tường, sàn, mái, phòng, cửa sổ kính, lan can cầu thang
+- [x] Bước 3: Va chạm AABB
+- [x] Bước 4: Cửa mở/đóng có hoạt ảnh quanh bản lề
+- [x] Bước 5: Hệ thống đèn phòng (phím F)
+- [x] Bước 6: Đồ đạc nội thất từng phòng (furniture.py)
+- [x] Bước 7: Hệ thống Túi đồ (phím Q, số 1..8) & Đặt đồ vật (Space xoay, Click/E đặt) (inventory.py)
+- [x] Bước 8: Cơ chế Cầm đồ vật lên xoay chuột quan sát 3D 360 độ (Inspect mode - phím V) (inspect.py)
+- [x] Bước 9: HUD 2D trực tiếp trên màn hình (hud.py) + README hoàn chỉnh
